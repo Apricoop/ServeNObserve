@@ -1,0 +1,474 @@
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>
+        var selectedJobId = -1;
+    </script>
+    <script src="~/js/core/jquery.min.js"></script>
+    <script src="~/js/core/jquery.mask.js"></script>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <title>
+        Serve N Observe
+    </title>
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no' name='viewport' />
+    <!--     Fonts and icons     -->
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,200" rel="stylesheet" />
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+    <!-- CSS Files -->
+    <link href="~/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/css/now-ui-dashboard.css?v=1.5.0" rel="stylesheet" />
+    <!-- CSS Just for demo purpose, don't include it in your project -->
+    <link href="~/demo/demo.css" rel="stylesheet" />
+    <style>
+        hidden, .hidden {
+            display: none;
+        }
+
+        .hoverableTable table tr:hover td {
+            background-color: #c0c0c0;
+        }
+
+        .selectedEmployee {
+            background-color:#3262ef;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body class="">
+    <div class="wrapper ">
+        <div class="sidebar" data-color="black" style="width:200px !important;">
+            <div class="logo">
+                <a class="simple-text logo-normal">
+                    Serve N Observe
+                </a>
+            </div>
+            <div class="sidebar-wrapper" id="sidebar-wrapper" style="width:200px !important;">
+                <ul class="nav">
+                    <li class="active ">
+                        <a href="@Url.Action("Dashboard", "Home")">
+                            <i class="now-ui-icons design_app"></i>
+                            <p>Ana Sayfa</p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("Tables", "Home")">
+                            <i class="now-ui-icons design_bullet-list-67"></i>
+                            <p>Listeler</p>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="main-panel" id="main-panel" style=" width: calc(100% - 200px) !important;">
+            <!-- Navbar -->
+            <nav class="navbar navbar-expand-lg navbar-transparent  bg-primary  navbar-absolute">
+                <div class="container-fluid">
+                    <div style="padding-left:20px;">
+                        @using (Html.BeginForm("GetBalanceBetweenDate", "Home", FormMethod.Post))
+                        {
+                            <div>
+                                Başlangıç Tarihi
+                                <input required type="date" name="StartDate" placeholder="Başlangıç Tarihi">
+                                Bitiş Tarihi
+                                <input required type="date" name="EndDate" placeholder="Bitiş Tarihi">
+                                <button type="submit" rel="tooltip" title="" class="btn btn-danger btn-round btn-icon btn-neutral" data-original-title="Remove">
+                                    <i class="now-ui-icons files_paper"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                    <div class="collapse navbar-collapse justify-content-end" id="navigation">
+                        <ul class="navbar-nav">
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i class="now-ui-icons users_single-02"></i>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownMenuLink">
+                                    <p class="dropdown-item">ServeNObserve</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+            <!-- End Navbar -->
+            <div class="panel-header panel-header-lg">
+                <canvas id="bigDashboardChart"></canvas>
+            </div>
+            <div class="content">
+                <div class="row jobGraph hidden">
+                    <div class="col-lg-12 col-md-12">
+                        <div class="card card-chart">
+                            <div class="card-header">
+                                <h4 class="outcomeData"></h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-area">
+                                    <canvas id="barChartSimpleGradientsNumbers"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-category">Tüm İşlerin Listesi</h5>
+                                <h4 class="card-title">İşler</h4>
+                                <div style="position: absolute; top: 0; right: 0;" class="addNewJob">
+                                    <button type="button" rel="tooltip" title="" class="btn btn-primary btn-round btn-icon btn-neutral btn-lg" data-original-title="Add">
+                                        <i class="now-ui-icons ui-1_simple-add"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive hoverableTable">
+                                    <table class="table">
+                                        <thead class=" text-primary">
+                                        <th>
+                                            İş Adı
+                                        </th>
+                                        <th>
+                                            Başlangıç Tarihi
+                                        </th>
+                                        <th>
+                                            Bitiş Tarihi
+                                        </th>
+                                        <th>
+                                            Gider
+                                        </th>
+                                        <th>
+                                            Gelir
+                                        </th>
+                                        </thead>
+                                        <tbody>
+                                            @{
+                                                var jobs = ViewData["Jobs"] as List<ServeNObserve.Domain.Models.Job>;
+
+                                                foreach (var j in jobs)
+                                                {
+                                                    <tr class="jobRow">
+                                                        <td class="hidden jobId">
+                                                            @j.Id
+                                                        </td>
+                                                        <td>
+                                                            @j.Name
+                                                        </td>
+                                                        <td>
+                                                            @j.StartDate.ToShortDateString()
+                                                        </td>
+                                                        <td>
+                                                            @j.EndDate.ToShortDateString()
+                                                        </td>
+                                                        <td>
+                                                            @j.TotalCost
+                                                        </td>
+                                                        <td>
+                                                            @j.Income
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 hidden" id="employeesTable">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <ul style="list-style-type: none;">
+                                            <li class="list-group-item">
+                                                İşin Adı
+                                                <div>
+                                                    <input type="text" class="jobName" placeholder="İş Adı" id="jobNameInput" />
+                                                </div>
+                                            </li>
+                                            <li class="list-group-item">
+                                                İşin Başlangıç Tarihi
+                                                <div>
+                                                    <input type="date" id="jobStartInput" />
+                                                </div>
+                                            </li>
+                                            <li class="list-group-item">
+                                                İşin Bitiş Tarihi
+                                                <div>
+                                                    <input type="date" / id="jobEndInput">
+                                                </div>
+                                            </li>
+                                            <li class="list-group-item">
+                                                Gelir
+                                                <div>
+                                                    <input type="text" class="onlyNumbers" placeholder="Gelir" id="jobIncomeInput" />
+                                                </div>
+                                            </li>
+                                            <li class="list-group-item">
+                                                Elektrik
+                                                <div>
+                                                    <input type="text" class="onlyNumbers" placeholder="Elektrik" id="jobElectricityInput" />
+                                                </div>
+                                            </li>
+                                            <li class="list-group-item">
+                                                Su
+                                                <div>
+                                                    <input type="text" class="onlyNumbers" placeholder="Su" id="jobWaterInput" />
+                                                </div>
+                                            </li>
+                                            <li class="list-group-item">
+                                                Doğalgaz
+                                                <div>
+                                                    <input type="text" class="onlyNumbers" placeholder="Doğalgaz" id="jobGasInput" />
+                                                </div>
+                                            </li>
+                                            <li class="list-group-item">
+                                                Diğer
+                                                <div>
+                                                    <input type="text" class="onlyNumbers" placeholder="Diğer" id="jobOtherInput" />
+                                                </div>
+                                            </li>
+                                            <li class="list-group-item">
+                                                Sgk
+                                                <div>
+                                                    <input type="text" class="onlyNumbers" placeholder="Sgk" id="jobSgkInput" />
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div style="position: absolute; top: 0; right: 0;">
+                                        <button type="submit" rel="tooltip" title="" class="btn btn-danger btn-round btn-icon btn-neutral btn-lg" data-original-title="Remove" onclick="DeleteJob()">
+                                            <i class="now-ui-icons ui-1_simple-remove"></i>
+                                        </button>
+
+                                        <button type="submit" rel="tooltip" title="" class="btn btn-info btn-round btn-icon btn-neutral btn-lg" data-original-title="Add" onclick="AddJob()">
+                                            <i class="now-ui-icons ui-1_check"></i>
+                                        </button>
+                                    </div>
+                                    <div class="hoverableTable">
+                                        <table class="table">
+                                            <thead class=" text-primary">
+                                                <tr>
+                                                    <th>
+                                                        Personel
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="employees">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--   Core JS Files   -->
+    <script src="~/js/core/popper.min.js"></script>
+    <script src="~/js/core/bootstrap.min.js"></script>
+    <script src="~/js/plugins/perfect-scrollbar.jquery.min.js"></script>
+    <!-- Chart JS -->
+    <script src="~/js/plugins/chartjs.min.js"></script>
+    <!--  Notifications Plugin    -->
+    <script src="~/js/plugins/bootstrap-notify.js"></script>
+    <!-- Control Center for Now Ui Dashboard: parallax effects, scripts for the example pages etc -->
+    <script src="~/js/now-ui-dashboard.min.js?v=1.5.0" type="text/javascript"></script><!-- Now Ui Dashboard DEMO methods, don't include it in your project! -->
+    <script src="~/demo/demo.js"></script>
+    <hidden>
+        @{
+            List<ServeNObserve.DataModels.Response.GeneralMoneyActivityResponse> moneyActivities = null;
+            moneyActivities = TempData.Get<List<ServeNObserve.DataModels.Response.GeneralMoneyActivityResponse>>("BalanceRange");
+
+            if (moneyActivities == null)
+                moneyActivities = ViewData["MoneyActivities"] as List<ServeNObserve.DataModels.Response.GeneralMoneyActivityResponse>;
+
+            <p id="activityCount">
+                @moneyActivities.Count
+            </p>
+            int count = 0;
+            foreach (var a in moneyActivities)
+            {
+                <p id="jobDate-@count">
+                    @a.Date.ToShortDateString()
+                </p>
+                <p id="jobIncome-@count">
+                    @a.Income
+                </p>
+                <p id="jobOutcome-@count">
+                    @a.Outcome
+                </p>
+                count++;
+            }
+            <script>
+                let labels = [];
+                let inComes = [];
+                let outComes = [];
+                $(document).ready(function () {
+                    let count = $('#activityCount').text();
+
+                    for (let i = 0; i < count; i++) {
+                        let date = $('#jobDate-' + i.toString()).text().replace("\n", "").trim();
+                        let inCome = $('#jobIncome-' + i.toString()).text();
+                        let outCome = $('#jobOutcome-' + i.toString()).text()
+                        labels.push(date)
+                        inComes.push(parseInt(inCome))
+                        outComes.push(-parseInt(outCome))
+                    }
+                    demo.initDashboardPageCharts(labels, inComes, outComes);
+                });
+            </script>
+        }
+    </hidden>
+    <script>
+
+        $(document).ready(function () {
+            $.get("Home/GetEmployees", function (data) {
+                let table = $("#employees");
+                table.empty();
+                data.forEach(d => {
+                    table.append("<tr class='employeeRow'><td>" + d["firstName"] + " " + d["lastName"] + " - " + d["salary"] + "</td> <td class='hidden' id='employeeId'>" + d["id"] + "</td></tr>")
+                });
+
+
+                $(".employeeRow").on('click', function (event) {
+                    if ($(this).hasClass("selectedEmployee")) {
+                        $(this).removeClass("selectedEmployee")
+                    }
+                    else {
+                        $(this).addClass("selectedEmployee")
+                    }
+                });
+            });
+            $('.onlyNumbers').mask('0#');
+            $('.maskedDate').mask('00/00/0000', { placeholder: "GG / AA / YYYY" });
+            $(".jobRow").on('click', function (event) {
+                selectedJobId = $(this).find(".jobId").text().trim();
+                $.get("Home/GetJob", { id: selectedJobId }, function (data) {
+                    let jobName = data["name"];
+                    let total = data["totalCost"];
+                    let other = data["other"];
+                    let electricity = data["electricity"];
+                    let water = data["water"];
+                    let gas = data["gas"];
+                    let sgk = data["sgk"];
+                    let salary = data["employeeSalaryCost"];
+                    demo.initDashboardOutcome(jobName + ' - Projesinin Gider Tablosu' + ' - Toplam Gider : ' + total, ["Elektrik", "Su", "Doğalgaz", "Diğer", "Sgk", "Maaş"]
+                        , [electricity, water, gas, other, sgk, salary]);
+
+                    $(".jobGraph").removeClass("hidden");
+
+
+                    $("#jobNameInput").val(data["name"]);
+                    var s = new Date(data["startDate"]);
+                    s.setDate(s.getDate() + 1);
+                    var e = new Date(data["endDate"]);
+                    e.setDate(e.getDate() + 1);
+                    $("#jobStartInput").val(s.toISOString().split('T')[0]);
+                    $("#jobEndInput").val(e.toISOString().split('T')[0]);
+                    $("#jobIncomeInput").val(data["income"]);
+                    $("#jobElectricityInput").val(data["electricity"]);
+                    $("#jobWaterInput").val(data["water"]);
+                    $("#jobGasInput").val(data["gas"]);
+                    $("#jobOtherInput").val(data["other"]);
+                    $("#jobSgkInput").val(data["sgk"]);
+
+                    $.get("Home/GetEmployeeIdsWorkingOnJob", { jobId: selectedJobId }, function (data) {
+                        $(".employeeRow").each(function() {
+                            let id = parseInt($(this).find("#employeeId").text().trim());
+                            if (jQuery.inArray(id, data) != -1) {
+                                $(this).addClass("selectedEmployee")
+                            }
+                            else {
+                                $(this).removeClass("selectedEmployee")
+                            }
+                            
+                        });
+                    });
+                });
+
+                $("#employeesTable").removeClass("hidden");
+            });
+            $(".addNewJob").on('click', function (event)
+            {
+                selectedJobId = -1;
+                $(".jobGraph").addClass("hidden");
+                $("#employeesTable").removeClass("hidden");
+                $("#jobNameInput").val("");
+                $("#jobStartInput").val("");
+                $("#jobEndInput").val("");
+                $("#jobIncomeInput").val("");
+                $("#jobElectricityInput").val("")
+                $("#jobWaterInput").val("")
+                $("#jobGasInput").val("")
+                $("#jobOtherInput").val("")
+                $("#jobSgkInput").val("")
+            });
+        });
+
+        function GetSelectedEmployees() {
+            let selectedEmployees = [];
+            $(".selectedEmployee").each(function () {
+                let id = $(this).find("#employeeId").text().trim();
+                selectedEmployees.push(parseInt(id));
+            });
+            return selectedEmployees;
+        }
+
+        function DeleteJob() {
+            if (selectedJobId != -1)
+            {
+                $.post("Home/DeleteJob", { id: selectedJobId }).done(function ()
+                {
+                    location.reload();
+                });
+            }
+        }
+        function AddJob() {
+            var job = new Object();
+            job.Name = $("#jobNameInput").val();
+            job.StartDate = $("#jobStartInput").val();
+            job.EndDate = $("#jobEndInput").val();
+            job.Income = $("#jobIncomeInput").val();
+            job.Electricity = $("#jobElectricityInput").val();
+            job.Water = $("#jobWaterInput").val();
+            job.Gas = $("#jobGasInput").val();
+            job.Other = $("#jobOtherInput").val();
+            job.Sgk = $("#jobSgkInput").val();
+
+            let employees = GetSelectedEmployees();
+            if (selectedJobId == -1)
+            {
+                //Yeni İş Ekle
+                $.post("Home/AddJob", { job: job, employeeIds: employees}).done(function ()
+                {
+                    location.reload();
+                });
+            }
+            else
+            {
+                //Psuedo Güncelle
+                $.post("Home/DeleteJob", { id: selectedJobId}).done(function ()
+                {
+                    $.post("Home/AddJob", { job: job, employeeIds: employees }).done(function ()
+                    {
+                        location.reload();
+                    });
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>
